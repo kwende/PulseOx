@@ -30,6 +30,8 @@ namespace Visualizer
         private double _axisMax;
         private double _axisMin;
 
+
+        private DeviceReader _reader; 
         protected virtual void OnPropertyChanged(string propertyName = null)
         {
             if (PropertyChanged != null)
@@ -38,7 +40,8 @@ namespace Visualizer
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public ChartValues<MeasureModel> ChartValues { get; set; }
+        public ChartValues<MeasureModel> ChartValuesRed { get; set; }
+        public ChartValues<MeasureModel> ChartValuesIR { get; set; }
         public Func<double, string> DateTimeFormatter { get; set; }
         public double AxisStep { get; set; }
         public double AxisUnit { get; set; }
@@ -75,12 +78,10 @@ namespace Visualizer
             CartesianMapper<MeasureModel> mapper = Mappers.Xy<MeasureModel>().X(model => model.DateTime.Ticks).Y(model => model.Value);
             Charting.For<MeasureModel>(mapper);
 
-            ChartValues = new ChartValues<MeasureModel>();
+            ChartValuesRed = new ChartValues<MeasureModel>();
+            ChartValuesIR = new ChartValues<MeasureModel>();
             //lets save the mapper globally.
             Charting.For<MeasureModel>(mapper);
-
-            //the values property will store our values array
-            ChartValues = new ChartValues<MeasureModel>();
 
             //lets set how to display the X Labels
             DateTimeFormatter = value => new DateTime((long)value).ToString("ss");
@@ -102,35 +103,28 @@ namespace Visualizer
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            Task.Run(() =>
+            _reader = new DeviceReader();
+            _reader.Start("COM4", 9600);
+            _reader.OnLineRead += (r, ir, dt) =>
             {
-                using (StreamReader sr = new StreamReader("C:/users/brush/desktop/test.txt"))
+                if(ChartValuesIR.Count > 100)
                 {
-                    while(!sr.EndOfStream)
-                    {
-                        string line = sr.ReadLine().Trim(); 
-                        string sValue = line.Split(' ')[0]; 
-                        double value = double.Parse(sValue);
-
-                        Thread.Sleep(50);
-                        var now = DateTime.Now;
-
-                        //_trend += r.Next(-8, 10);
-
-                        ChartValues.Add(new MeasureModel
-                        {
-                            DateTime = now,
-                            Value = value, //r.Next(-8, 10)
-                        });
-
-                        SetAxisLimits(now);
-
-                        //lets only use the last 150 values
-                        if (ChartValues.Count > 150) ChartValues.RemoveAt(0);
-                    }
+                    ChartValuesIR.RemoveAt(0);
+                    ChartValuesRed.RemoveAt(0); 
                 }
-               
-            }); 
+
+                ChartValuesRed.Add(new MeasureModel
+                {
+                    DateTime = dt,
+                    Value = r, //r.Next(-8, 10)
+                });
+                ChartValuesIR.Add(new MeasureModel
+                {
+                    DateTime = dt,
+                    Value = ir, //r.Next(-8, 10)
+                });
+                SetAxisLimits(dt);
+            }; 
         }
     }
 }
