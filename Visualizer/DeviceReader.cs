@@ -11,13 +11,20 @@ namespace Visualizer
     public class DeviceReader
     {
         public event Action<double, double, DateTime> OnLineRead;
+        public event Action<List<MeasureModel>, List<MeasureModel>> OnBatchCompleted; 
+
         private SerialPort _port;
         private DateTime _lastSend = new DateTime(1, 1, 1);
         private List<double> rs = new List<double>();
-        private List<double> irs = new List<double>(); 
+        private List<double> irs = new List<double>();
+        private int _batchSize;
 
-        public void Start(string comPort, int baudRate)
+        private List<MeasureModel> rBatch = new List<MeasureModel>();
+        private List<MeasureModel> irBatch = new List<MeasureModel>(); 
+
+        public void Start(string comPort, int baudRate, int batchSize)
         {
+            _batchSize = batchSize; 
             if(_port == null)
             {
                 _port = new SerialPort(comPort, baudRate);
@@ -41,9 +48,31 @@ namespace Visualizer
                             DateTime now = DateTime.Now; 
                             if((now - _lastSend).TotalMilliseconds >= 50)
                             {
-                                OnLineRead(rs.Average(), irs.Average(), now);
+                                double rAverage = rs.Average();
+                                double irAverage = irs.Average();
+
+                                OnLineRead(rAverage, irAverage, now);
                                 irs.Clear();
-                                rs.Clear(); 
+                                rs.Clear();
+
+                                rBatch.Add(new MeasureModel
+                                {
+                                     DateTime = now,
+                                     Value = rAverage,
+                                });
+
+                                irBatch.Add(new MeasureModel
+                                {
+                                    DateTime = now,
+                                    Value = irAverage,
+                                }); 
+
+                                if(irBatch.Count >= _batchSize)
+                                {
+                                    OnBatchCompleted(rBatch, irBatch); 
+                                    rBatch.Clear();
+                                    irBatch.Clear(); 
+                                }
                             }
                             _lastSend = now; 
                         }

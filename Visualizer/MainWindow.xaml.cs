@@ -40,6 +40,9 @@ namespace Visualizer
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        public ChartValues<MeasureModel> ChartValuesRedProcessed { get; set; }
+        public ChartValues<MeasureModel> ChartValuesIRProcessed { get; set; }
+
         public ChartValues<MeasureModel> ChartValuesRed { get; set; }
         public ChartValues<MeasureModel> ChartValuesIR { get; set; }
         public Func<double, string> DateTimeFormatter { get; set; }
@@ -80,6 +83,10 @@ namespace Visualizer
 
             ChartValuesRed = new ChartValues<MeasureModel>();
             ChartValuesIR = new ChartValues<MeasureModel>();
+
+            ChartValuesRedProcessed = new ChartValues<MeasureModel>();
+            ChartValuesIRProcessed = new ChartValues<MeasureModel>();
+
             //lets save the mapper globally.
             Charting.For<MeasureModel>(mapper);
 
@@ -104,7 +111,7 @@ namespace Visualizer
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _reader = new DeviceReader();
-            _reader.Start("COM4", 9600);
+            _reader.Start("COM3", 9600, 100);
             _reader.OnLineRead += (r, ir, dt) =>
             {
                 if(ChartValuesIR.Count > 100)
@@ -124,6 +131,18 @@ namespace Visualizer
                     Value = ir, //r.Next(-8, 10)
                 });
                 SetAxisLimits(dt);
+            };
+            _reader.OnBatchCompleted += (r, ir) =>
+            {
+                SignalProcessor.Mean(ref r, ref ir);
+
+                ChartValuesRedProcessed.Clear();
+                ChartValuesRedProcessed.AddRange(r);
+
+                ChartValuesIRProcessed.Clear();
+                ChartValuesIRProcessed.AddRange(ir); 
+
+                return; 
             }; 
         }
     }
