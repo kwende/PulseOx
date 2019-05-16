@@ -145,13 +145,20 @@ namespace Visualizer
                         Value = m.Value
                     });
                 }
-                SignalProcessor.LineLeveling(ref ir, ref r); 
+                SignalProcessor.LineLeveling(ref ir, ref r);
+
+                double spo2 = SignalProcessor.ComputeSpo2(ir, r);
+
+                Dispatcher.Invoke(() =>
+                {
+                    SpO2Label.Content = spo2.ToString(); 
+                }); 
 
                 ChartValuesRedProcessed.Clear();
                 ChartValuesRedProcessed.AddRange(r);
 
                 ChartValuesIRProcessed.Clear();
-                ChartValuesIRProcessed.AddRange(duplicateR);
+                ChartValuesIRProcessed.AddRange(ir);
 
                 return; 
             }; 

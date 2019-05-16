@@ -67,5 +67,6 @@
                 </lvc:Axis>
             </lvc:CartesianChart.AxisX>-->
         </lvc:CartesianChart>
+        <Label x:Name="SpO2Label" Content="Label" HorizontalAlignment="Left" Margin="1073,439,0,0" VerticalAlignment="Top"/>
     </Grid>
 </Window>

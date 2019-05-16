@@ -46,36 +46,38 @@ namespace Reader
                             rs.Add(r);
                             irs.Add(ir); 
 
-                            DateTime now = DateTime.Now; 
-                            if((now - _lastSend).TotalMilliseconds >= 50)
+                            DateTime now = DateTime.Now;
+                            double timeStamp = (now - startTime).TotalSeconds;
+
+                            if ((now - _lastSend).TotalMilliseconds >= 50)
                             {
                                 double rAverage = rs.Average();
                                 double irAverage = irs.Average();
-                                double timeStamp = (now - startTime).TotalSeconds; 
 
                                 OnLineRead(rAverage, irAverage, timeStamp);
                                 irs.Clear();
                                 rs.Clear();
-
-                                rBatch.Add(new MeasureModel
-                                {
-                                     Time = timeStamp,
-                                     Value = rAverage,
-                                });
-
-                                irBatch.Add(new MeasureModel
-                                {
-                                    Time = timeStamp,
-                                    Value = irAverage,
-                                }); 
-
-                                if(irBatch.Count >= _batchSize)
-                                {
-                                    OnBatchCompleted?.Invoke(rBatch, irBatch); 
-                                    rBatch.Clear();
-                                    irBatch.Clear(); 
-                                }
                             }
+
+                            rBatch.Add(new MeasureModel
+                            {
+                                Time = timeStamp,
+                                Value = r,
+                            });
+
+                            irBatch.Add(new MeasureModel
+                            {
+                                Time = timeStamp,
+                                Value = ir,
+                            });
+
+                            if (irBatch.Count >= _batchSize)
+                            {
+                                OnBatchCompleted?.Invoke(rBatch, irBatch);
+                                rBatch.Clear();
+                                irBatch.Clear();
+                            }
+
                             _lastSend = now; 
                         }
                     }

@@ -44,5 +44,17 @@ namespace Reader
                 line[c].Value = newValue; 
             }
         }
+
+        public static double ComputeSpo2(List<MeasureModel> ir, List<MeasureModel> r)
+        {
+            double average = 0.0; 
+            for(int c=0;c<ir.Count;c++)
+            {
+                average += r[c].Value / ir[c].Value; 
+            }
+            average /= r.Count;
+
+            return -45.060 * average * average + 30.354 * average + 94.845; 
+        }
     }
 }
