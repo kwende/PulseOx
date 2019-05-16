@@ -25,7 +25,8 @@ namespace Logger
                         bw.Write(DateTime.Now.ToFileTime());
                         bw.Write(r);
                         bw.Write(ir);
-                        bw.Write((byte)0x69); 
+                        bw.Write((byte)0x69);
+                        bw.Flush();
                         //sw.WriteLine($"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss.fff")},{r},{ir}");
                         //sw.Flush();
                     };

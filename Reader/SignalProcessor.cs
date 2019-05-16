@@ -32,16 +32,15 @@ namespace Reader
             double avX = line.Average(n => n.Time);
             double avY = line.Average(n => n.Value); 
 
-            double devX = line.Sum(n => n.Time - avX);
-            double devY = line.Sum(n => n.Value - avY); 
-            double m = (devX * devY) / (devX * devX);
+            double m = line.Sum(n=>(n.Time - avX) * (n.Value - avY)) / 
+                line.Sum(n=>(n.Time - avX) * (n.Time - avX));
 
             double b = avY - m * avX; 
 
             for(int c=0;c<line.Count;c++)
             {
-                //double newValue = line[c].Value - (m * line[c].Time + b);
-                double newValue = (m * line[c].Time + b);
+                double newValue = line[c].Value - (m * line[c].Time + b);
+                //double newValue = (m * line[c].Time + b);
                 line[c].Value = newValue; 
             }
         }
