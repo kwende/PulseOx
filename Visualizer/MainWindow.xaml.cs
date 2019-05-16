@@ -17,6 +17,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Reader; 
 
 namespace Visualizer
 {
@@ -67,10 +68,10 @@ namespace Visualizer
             }
         }
 
-        private void SetAxisLimits(DateTime now)
+        private void SetAxisLimits(double nowInSeconds)
         {
-            AxisMax = now.Ticks + TimeSpan.FromMilliseconds(100).Ticks; // lets force the axis to be 1 second ahead
-            AxisMin = now.Ticks - TimeSpan.FromSeconds(5).Ticks; // and 8 seconds behind
+            AxisMax = nowInSeconds + .1; // lets force the axis to be 1 second ahead
+            AxisMin = nowInSeconds - 5; // and 8 seconds behind
         }
 
 
@@ -78,7 +79,7 @@ namespace Visualizer
         {
             InitializeComponent();
 
-            CartesianMapper<MeasureModel> mapper = Mappers.Xy<MeasureModel>().X(model => model.DateTime.Ticks).Y(model => model.Value);
+            CartesianMapper<MeasureModel> mapper = Mappers.Xy<MeasureModel>().X(model => model.Time).Y(model => model.Value);
             Charting.For<MeasureModel>(mapper);
 
             ChartValuesRed = new ChartValues<MeasureModel>();
@@ -91,15 +92,15 @@ namespace Visualizer
             Charting.For<MeasureModel>(mapper);
 
             //lets set how to display the X Labels
-            DateTimeFormatter = value => new DateTime((long)value).ToString("ss");
+            //DateTimeFormatter = value => new DateTime((long)value).ToString("ss");
 
             //AxisStep forces the distance between each separator in the X axis
-            AxisStep = TimeSpan.FromMilliseconds(50).Ticks;
+            AxisStep = 1; // TimeSpan.FromMilliseconds(50).Ticks;
             //AxisUnit forces lets the axis know that we are plotting seconds
             //this is not always necessary, but it can prevent wrong labeling
-            AxisUnit = TimeSpan.TicksPerSecond;
+            AxisUnit = 1;
 
-            SetAxisLimits(DateTime.Now);
+            SetAxisLimits(0);
 
             //The next code simulates data changes every 300 ms
 
@@ -122,12 +123,12 @@ namespace Visualizer
 
                 ChartValuesRed.Add(new MeasureModel
                 {
-                    DateTime = dt,
+                    Time = dt,
                     Value = r, //r.Next(-8, 10)
                 });
                 ChartValuesIR.Add(new MeasureModel
                 {
-                    DateTime = dt,
+                    Time = dt,
                     Value = ir, //r.Next(-8, 10)
                 });
                 SetAxisLimits(dt);
@@ -135,12 +136,22 @@ namespace Visualizer
             _reader.OnBatchCompleted += (r, ir) =>
             {
                 SignalProcessor.Mean(ref r, ref ir);
+                List<MeasureModel> duplicateR = new List<MeasureModel>(r.Count);
+                foreach (MeasureModel m in r)
+                {
+                    duplicateR.Add(new MeasureModel
+                    {
+                        Time = m.Time,
+                        Value = m.Value
+                    });
+                }
+                SignalProcessor.LineLeveling(ref ir, ref r); 
 
                 ChartValuesRedProcessed.Clear();
                 ChartValuesRedProcessed.AddRange(r);
 
                 ChartValuesIRProcessed.Clear();
-                ChartValuesIRProcessed.AddRange(ir); 
+                ChartValuesIRProcessed.AddRange(duplicateR);
 
                 return; 
             }; 

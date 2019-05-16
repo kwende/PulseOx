@@ -6,11 +6,11 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace Visualizer
+namespace Reader
 {
     public class DeviceReader
     {
-        public event Action<double, double, DateTime> OnLineRead;
+        public event Action<double, double, double> OnLineRead;
         public event Action<List<MeasureModel>, List<MeasureModel>> OnBatchCompleted; 
 
         private SerialPort _port;
@@ -24,6 +24,7 @@ namespace Visualizer
 
         public void Start(string comPort, int baudRate, int batchSize)
         {
+            DateTime startTime = DateTime.Now; 
             _batchSize = batchSize; 
             if(_port == null)
             {
@@ -50,26 +51,27 @@ namespace Visualizer
                             {
                                 double rAverage = rs.Average();
                                 double irAverage = irs.Average();
+                                double timeStamp = (now - startTime).TotalSeconds; 
 
-                                OnLineRead(rAverage, irAverage, now);
+                                OnLineRead(rAverage, irAverage, timeStamp);
                                 irs.Clear();
                                 rs.Clear();
 
                                 rBatch.Add(new MeasureModel
                                 {
-                                     DateTime = now,
+                                     Time = timeStamp,
                                      Value = rAverage,
                                 });
 
                                 irBatch.Add(new MeasureModel
                                 {
-                                    DateTime = now,
+                                    Time = timeStamp,
                                     Value = irAverage,
                                 }); 
 
                                 if(irBatch.Count >= _batchSize)
                                 {
-                                    OnBatchCompleted(rBatch, irBatch); 
+                                    OnBatchCompleted?.Invoke(rBatch, irBatch); 
                                     rBatch.Clear();
                                     irBatch.Clear(); 
                                 }

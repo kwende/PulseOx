@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Visualizer
+namespace Reader
 {
     public class MeasureModel
     {
-        public DateTime DateTime { get; set; }
+        public double Time { get; set; }
         public double Value { get; set; }
     }
 }
