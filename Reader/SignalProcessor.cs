@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathNet.Numerics.Statistics;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -47,14 +48,25 @@ namespace Reader
 
         public static double ComputeSpo2(List<MeasureModel> ir, List<MeasureModel> r)
         {
-            double average = 0.0; 
-            for(int c=0;c<ir.Count;c++)
+            double coeff = Correlation.Pearson(ir.Select(n => n.Value), r.Select(n => n.Value)); 
+            if(coeff > .97)
             {
-                average += r[c].Value / ir[c].Value; 
-            }
-            average /= r.Count;
+                double rmsR = Statistics.RootMeanSquare(r.Select(n => n.Value));
+                double rmsIR = Statistics.RootMeanSquare(ir.Select(n => n.Value));
 
-            return -45.060 * average * average + 30.354 * average + 94.845; 
+                double meanR = Statistics.Mean(r.Select(n => n.Value));
+                double meanIr = Statistics.Mean(ir.Select(n => n.Value));
+
+                double z = (rmsR / meanR) / (rmsIR / meanIr); 
+
+                double spo2 = -45.060 * z * z + 30.354 * z + 94.845;
+
+                return spo2;
+            }
+            else
+            {
+                return -1; 
+            }
         }
     }
 }

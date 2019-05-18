@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Reader;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,27 +12,98 @@ namespace Logger
     {
         static void Main(string[] args)
         {
-            string path = "data_" + DateTime.Now.ToString().Replace("/", "_").Replace(":", "_") + ".dat";
-            //using (StreamWriter sw = new StreamWriter(path))
-            using (FileStream fs = File.Create(path))
+            if(args.Length == 0)
             {
-                using (BinaryWriter bw = new BinaryWriter(fs))
+                string path = "data_" + DateTime.Now.ToString().Replace("/", "_").Replace(":", "_") + ".dat";
+                //using (StreamWriter sw = new StreamWriter(path))
+                using (FileStream fs = File.Create(path))
                 {
-                    Reader.DeviceReader dr = new Reader.DeviceReader();
-                    dr.Start("COM3", 9600, 100);
-                    dr.OnLineRead += (r, ir, time) =>
+                    using (BinaryWriter bw = new BinaryWriter(fs))
                     {
-                        Console.Write(".");
-                        bw.Write(DateTime.Now.ToFileTime());
-                        bw.Write(r);
-                        bw.Write(ir);
-                        bw.Write((byte)0x69);
-                        bw.Flush();
-                        //sw.WriteLine($"{DateTime.Now.ToString("MM/dd/yyyy HH:mm:ss.fff")},{r},{ir}");
-                        //sw.Flush();
-                    };
-                    Console.WriteLine("Press ENTER to quit.");
-                    Console.ReadLine();
+                        Reader.DeviceReader dr = new Reader.DeviceReader();
+                        dr.Start("COM3", 9600, 100);
+                        dr.OnLineRead += (r, ir, time) =>
+                        {
+                            Console.Write(".");
+                            bw.Write(DateTime.Now.ToFileTime());
+                            bw.Write(r);
+                            bw.Write(ir);
+                            bw.Write((byte)0x69);
+                        };
+                        dr.OnBatchCompleted += (r, ir) =>
+                        {
+                            Console.Write("+");
+                            bw.Flush();
+                        };
+                        Console.WriteLine("Press ENTER to quit.");
+                        Console.ReadLine();
+                    }
+                }
+            }
+            else
+            {
+                string inputFile = args[0];
+                string resultsFile = Path.Combine(Path.GetDirectoryName(inputFile), Path.GetFileNameWithoutExtension(inputFile)) + ".csv";
+                using (StreamWriter sw = new StreamWriter(resultsFile))
+                {
+                    using (FileStream fin = File.OpenRead(inputFile))
+                    {
+                        using (BinaryReader br = new BinaryReader(fin))
+                        {
+                            List<MeasureModel> irs = new List<MeasureModel>();
+                            List<MeasureModel> rs = new List<MeasureModel>();
+
+                            DateTime start = new DateTime(1, 1, 1); 
+                            while(br.BaseStream.Position < br.BaseStream.Length)
+                            {
+                                Console.Write("."); 
+                                long fileTime = br.ReadInt64();
+                                double r = br.ReadDouble();
+                                double ir = br.ReadDouble();
+                                byte marker = br.ReadByte();
+
+                                if (marker == 0x69)
+                                {
+                                    DateTime dt = DateTime.FromFileTime(fileTime);
+                                    if(start.Year == 1)
+                                    {
+                                        start = dt; 
+                                    }
+
+                                    irs.Add(new MeasureModel
+                                    {
+                                        Time = (dt - start).TotalSeconds,
+                                        Value = ir,
+                                    });
+                                    rs.Add(new MeasureModel
+                                    {
+                                        Time = (dt - start).TotalSeconds,
+                                        Value = r,
+                                    });
+
+                                    if(rs.Count == 100)
+                                    {
+                                        SignalProcessor.Mean(ref irs, ref rs);
+                                        SignalProcessor.LineLeveling(ref irs, ref rs);
+                                        double spo2 = SignalProcessor.ComputeSpo2(irs, rs);
+                                        if(spo2 > 90 && spo2 < 100)
+                                        {
+                                            sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}");
+                                            sw.Flush();
+                                        }
+
+                                        rs.Clear();
+                                        irs.Clear(); 
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Corrupted file! Ending");
+                                    return;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
