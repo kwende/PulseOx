@@ -83,14 +83,19 @@ namespace Logger
 
                                     if(rs.Count == 100)
                                     {
-                                        SignalProcessor.Mean(ref irs, ref rs);
-                                        SignalProcessor.LineLeveling(ref irs, ref rs);
-                                        double spo2 = SignalProcessor.ComputeSpo2(irs, rs);
-                                        if(spo2 > 90 && spo2 < 100)
+                                        //SignalProcessor.Mean(ref irs, ref rs);
+                                        //SignalProcessor.LineLeveling(ref irs, ref rs);
+                                        //double spo2 = SignalProcessor.ComputeSpo2(irs, rs);
+                                        double spo2 = 0, bpm = 0; 
+                                        if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm))
                                         {
-                                            sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}");
-                                            sw.Flush();
+                                            if (spo2 > 90 && spo2 < 100)
+                                            {
+                                                sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
+                                                sw.Flush();
+                                            }
                                         }
+              
 
                                         rs.Clear();
                                         irs.Clear(); 
