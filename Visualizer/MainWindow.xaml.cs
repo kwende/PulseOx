@@ -17,7 +17,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Reader; 
+using Reader;
+using Robert;
 
 namespace Visualizer
 {
@@ -136,24 +137,16 @@ namespace Visualizer
             _reader.OnBatchCompleted += (r, ir) =>
             {
                 SignalProcessor.Mean(ref r, ref ir);
-                List<MeasureModel> duplicateR = new List<MeasureModel>(r.Count);
-                foreach (MeasureModel m in r)
-                {
-                    duplicateR.Add(new MeasureModel
-                    {
-                        Time = m.Time,
-                        Value = m.Value
-                    });
-                }
                 SignalProcessor.LineLeveling(ref ir, ref r);
 
-                double spo2 = SignalProcessor.ComputeSpo2(ir, r);
-
-                Dispatcher.Invoke(() =>
+                double spo2 = 0, bpm = 0;
+                if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm))
                 {
-                    SpO2Label.Content = spo2.ToString(); 
-                }); 
-
+                    Dispatcher.Invoke(() =>
+                    {
+                        SpO2Label.Content = spo2.ToString();
+                    });
+                }
                 ChartValuesRedProcessed.Clear();
                 ChartValuesRedProcessed.AddRange(r);
 
