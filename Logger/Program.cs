@@ -55,7 +55,8 @@ namespace Logger
                             List<MeasureModel> rs = new List<MeasureModel>();
                             List<MeasureModel> gs = new List<MeasureModel>(); 
 
-                            DateTime start = new DateTime(1, 1, 1); 
+                            DateTime start = new DateTime(1, 1, 1);
+                            double lastSpo2 = -1; 
                             while(br.BaseStream.Position < br.BaseStream.Length)
                             {
                                 Console.Write("."); 
@@ -87,7 +88,8 @@ namespace Logger
                                     {
                                         Time = (dt - start).TotalSeconds,
                                         Value = g,
-                                    }); 
+                                    });
+
 
                                     if(rs.Count == 100)
                                     {
@@ -97,23 +99,24 @@ namespace Logger
                                         double spo2 = 0, bpm = 0; 
                                         if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm))
                                         {
-                                            SignalProcessor.Mean(ref gs);
-                                            SignalProcessor.LineLeveling(ref gs); 
-                                            bpm = SignalProcessor.ComputeBpm(gs); 
-
                                             if (spo2 > 90 && spo2 < 100)
                                             {
-                                                sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
-                                                sw.Flush();
+                                                lastSpo2 = spo2; 
                                             }
                                         }
-                                        //else
-                                        //{
-                                        //    sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{-1}, {-1}");
-                                        //    sw.Flush();
-                                        //}
-              
 
+                                        SignalProcessor.Mean(ref gs);
+                                        SignalProcessor.LineLeveling(ref gs);
+                                        bpm = SignalProcessor.ComputeBpm(gs);
+
+                                        //foreach(double v in gs.Select(n=>n.Value))
+                                        //{
+                                        //    File.AppendAllText("C:/users/ben/desktop/turd.csv", $"{v}\n");
+                                        //}
+
+                                        sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
+                                        sw.Flush();
+       
                                         rs.Clear();
                                         irs.Clear();
                                         gs.Clear(); 
@@ -128,6 +131,8 @@ namespace Logger
                         }
                     }
                 }
+
+                return; 
             }
         }
     }

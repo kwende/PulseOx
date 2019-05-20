@@ -60,12 +60,17 @@ namespace Reader
         {
             int beats = 0;
             List<double> times = new List<double>(); 
-            for(int c=1;c<heart.Count;c++)
+            for(int c=1;c<heart.Count-1;c++)
             {
-                if(heart[c-1].Value < 100 && heart[c].Value >= 100)
+                double v1 = heart[c - 1].Value;
+                double v2 = heart[c].Value;
+                double v3 = heart[c +1].Value;
+
+                if (v1 > 100 && v2 > 100 && v3 > 100 &&
+                    v1 < v2 && v2 > v3)
                 {
                     beats++;
-                    times.Add(heart[c].Time); 
+                    times.Add(heart[c].Time);
                 }
             }
             if(times.Count > 2)
