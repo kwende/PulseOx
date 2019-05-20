@@ -59,7 +59,6 @@ namespace Logger
                             double lastSpo2 = -1; 
                             while(br.BaseStream.Position < br.BaseStream.Length)
                             {
-                                Console.Write("."); 
                                 long fileTime = br.ReadInt64();
                                 double r = br.ReadDouble();
                                 double ir = br.ReadDouble();
@@ -101,7 +100,9 @@ namespace Logger
                                         {
                                             if (spo2 > 90 && spo2 < 100)
                                             {
-                                                lastSpo2 = spo2; 
+                                                sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
+                                                sw.Flush();
+                                                //lastSpo2 = spo2; 
                                             }
                                         }
 
@@ -114,8 +115,7 @@ namespace Logger
                                         //    File.AppendAllText("C:/users/ben/desktop/turd.csv", $"{v}\n");
                                         //}
 
-                                        sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
-                                        sw.Flush();
+                 
        
                                         rs.Clear();
                                         irs.Clear();
