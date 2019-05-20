@@ -42,11 +42,17 @@ namespace Visualizer
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        const int BatchSize = 100; 
+
         public ChartValues<MeasureModel> ChartValuesRedProcessed { get; set; }
         public ChartValues<MeasureModel> ChartValuesIRProcessed { get; set; }
+        public ChartValues<MeasureModel> ChartHeartProcessed { get; set; }
 
         public ChartValues<MeasureModel> ChartValuesRed { get; set; }
         public ChartValues<MeasureModel> ChartValuesIR { get; set; }
+
+        public ChartValues<MeasureModel> ChartValuesHeart { get; set; }
+
         public Func<double, string> DateTimeFormatter { get; set; }
         public double AxisStep { get; set; }
         public double AxisUnit { get; set; }
@@ -85,9 +91,11 @@ namespace Visualizer
 
             ChartValuesRed = new ChartValues<MeasureModel>();
             ChartValuesIR = new ChartValues<MeasureModel>();
+            ChartValuesHeart = new ChartValues<MeasureModel>();
 
             ChartValuesRedProcessed = new ChartValues<MeasureModel>();
             ChartValuesIRProcessed = new ChartValues<MeasureModel>();
+            ChartHeartProcessed = new ChartValues<MeasureModel>(); 
 
             //lets save the mapper globally.
             Charting.For<MeasureModel>(mapper);
@@ -113,13 +121,14 @@ namespace Visualizer
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             _reader = new DeviceReader();
-            _reader.Start("COM3", 9600, 100);
-            _reader.OnLineRead += (r, ir, dt) =>
+            _reader.Start("COM3", 9600, BatchSize);
+            _reader.OnLineRead += (r, ir, g, dt) =>
             {
-                if(ChartValuesIR.Count > 100)
+                if(ChartValuesIR.Count > BatchSize)
                 {
                     ChartValuesIR.RemoveAt(0);
-                    ChartValuesRed.RemoveAt(0); 
+                    ChartValuesRed.RemoveAt(0);
+                    ChartValuesHeart.RemoveAt(0); 
                 }
 
                 ChartValuesRed.Add(new MeasureModel
@@ -132,26 +141,48 @@ namespace Visualizer
                     Time = dt,
                     Value = ir, //r.Next(-8, 10)
                 });
+                ChartValuesHeart.Add(new MeasureModel
+                {
+                    Time = dt,
+                    Value = g,
+                }); 
                 SetAxisLimits(dt);
             };
-            _reader.OnBatchCompleted += (r, ir) =>
+            _reader.OnBatchCompleted += (r, ir, g) =>
             {
                 SignalProcessor.Mean(ref r, ref ir);
                 SignalProcessor.LineLeveling(ref ir, ref r);
+
+                ChartValuesRedProcessed.Clear();
+                ChartValuesIRProcessed.Clear();
+                ChartHeartProcessed.Clear();
+
+ 
+                ChartValuesRedProcessed.AddRange(r);
+                ChartValuesIRProcessed.AddRange(ir);
+
+                SignalProcessor.Mean(ref g);
+                SignalProcessor.LineLeveling(ref g);
+
+                double myBpm = SignalProcessor.ComputeBpm(g);
+
+                ChartHeartProcessed.AddRange(g);
 
                 double spo2 = 0, bpm = 0;
                 if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm))
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        SpO2Label.Content = spo2.ToString();
+                        SpO2Label.Content = $"SPO2: {spo2}, BPM: {myBpm}"; 
                     });
                 }
-                ChartValuesRedProcessed.Clear();
-                ChartValuesRedProcessed.AddRange(r);
-
-                ChartValuesIRProcessed.Clear();
-                ChartValuesIRProcessed.AddRange(ir);
+                else
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        SpO2Label.Content = $"BPM: {myBpm}";
+                    });
+                }
 
                 return; 
             }; 

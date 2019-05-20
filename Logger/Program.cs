@@ -22,17 +22,18 @@ namespace Logger
                     {
                         Reader.DeviceReader dr = new Reader.DeviceReader();
                         dr.Start("COM3", 9600, 100);
-                        dr.OnLineRead += (r, ir, time) =>
+                        dr.OnEveryLine += (r, ir, g, time) =>
                         {
-                            Console.Write(".");
-                            bw.Write(DateTime.Now.ToFileTime());
-                            bw.Write(r);
-                            bw.Write(ir);
+                            //Console.Write(".");
+                            bw.Write(time.ToFileTime());
+                            bw.Write(r.Value);
+                            bw.Write(ir.Value);
+                            bw.Write(g.Value); 
                             bw.Write((byte)0x69);
                         };
-                        dr.OnBatchCompleted += (r, ir) =>
+                        dr.OnBatchCompleted += (r, ir, g) =>
                         {
-                            Console.Write("+");
+                            //Console.Write("+");
                             bw.Flush();
                         };
                         Console.WriteLine("Press ENTER to quit.");
@@ -52,6 +53,7 @@ namespace Logger
                         {
                             List<MeasureModel> irs = new List<MeasureModel>();
                             List<MeasureModel> rs = new List<MeasureModel>();
+                            List<MeasureModel> gs = new List<MeasureModel>(); 
 
                             DateTime start = new DateTime(1, 1, 1); 
                             while(br.BaseStream.Position < br.BaseStream.Length)
@@ -60,6 +62,7 @@ namespace Logger
                                 long fileTime = br.ReadInt64();
                                 double r = br.ReadDouble();
                                 double ir = br.ReadDouble();
+                                double g = br.ReadDouble(); 
                                 byte marker = br.ReadByte();
 
                                 if (marker == 0x69)
@@ -80,6 +83,11 @@ namespace Logger
                                         Time = (dt - start).TotalSeconds,
                                         Value = r,
                                     });
+                                    gs.Add(new MeasureModel
+                                    {
+                                        Time = (dt - start).TotalSeconds,
+                                        Value = g,
+                                    }); 
 
                                     if(rs.Count == 100)
                                     {
@@ -89,16 +97,26 @@ namespace Logger
                                         double spo2 = 0, bpm = 0; 
                                         if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm))
                                         {
+                                            SignalProcessor.Mean(ref gs);
+                                            SignalProcessor.LineLeveling(ref gs); 
+                                            bpm = SignalProcessor.ComputeBpm(gs); 
+
                                             if (spo2 > 90 && spo2 < 100)
                                             {
                                                 sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
                                                 sw.Flush();
                                             }
                                         }
+                                        //else
+                                        //{
+                                        //    sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{-1}, {-1}");
+                                        //    sw.Flush();
+                                        //}
               
 
                                         rs.Clear();
-                                        irs.Clear(); 
+                                        irs.Clear();
+                                        gs.Clear(); 
                                     }
                                 }
                                 else

@@ -1,8 +1,8 @@
 #include "pch.h"
 
 #include "Robert.h"
-//#include "algorithm_by_RF.h"
-#include "algorithm.h"
+#include "algorithm_by_RF.h"
+//#include "algorithm.h"
 
 using namespace Robert; 
 
@@ -21,8 +21,8 @@ bool Interop::Compute(array<double>^ ir, array<double>^ r, double% spo2, double%
 	char spo2Valid = 0, heartValid = 0; 
 	int heartRate; 
 	float ratio, coeff; 
-	maxim_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid); 
-	//rf_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid, &ratio, &coeff); 
+	//maxim_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid); 
+	rf_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid, &ratio, &coeff); 
 
 	if (spo2Valid && heartValid)
 	{

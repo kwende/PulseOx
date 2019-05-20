@@ -22,13 +22,23 @@ namespace Reader
             }
         }
 
+        public static void Mean(ref List<MeasureModel> m)
+        {
+            double average = m.Average(n => n.Value);
+
+            for (int c = 0; c < m.Count; c++)
+            {
+                m[c].Value = m[c].Value - average;
+            }
+        }
+
         public static void LineLeveling(ref List<MeasureModel> ir, ref List<MeasureModel> r)
         {
             LineLeveling(ref ir);
             LineLeveling(ref r); 
         }
 
-        private static void LineLeveling(ref List<MeasureModel> line)
+        public static void LineLeveling(ref List<MeasureModel> line)
         {
             double avX = line.Average(n => n.Time);
             double avY = line.Average(n => n.Value); 
@@ -43,6 +53,35 @@ namespace Reader
                 double newValue = line[c].Value - (m * line[c].Time + b);
                 //double newValue = (m * line[c].Time + b);
                 line[c].Value = newValue; 
+            }
+        }
+
+        public static double ComputeBpm(List<MeasureModel> heart)
+        {
+            int beats = 0;
+            List<double> times = new List<double>(); 
+            for(int c=1;c<heart.Count;c++)
+            {
+                if(heart[c-1].Value < 100 && heart[c].Value >= 100)
+                {
+                    beats++;
+                    times.Add(heart[c].Time); 
+                }
+            }
+            if(times.Count > 2)
+            {
+                double first = heart.First().Time;
+                double last = heart.Last().Time;
+
+                double timeSpan = last - first;
+                double multiple = 60.0 / timeSpan;
+
+                double bpm = multiple * beats;
+                return bpm; 
+            }
+            else
+            {
+                return 0; 
             }
         }
 

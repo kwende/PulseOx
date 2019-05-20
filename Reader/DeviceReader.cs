@@ -10,17 +10,20 @@ namespace Reader
 {
     public class DeviceReader
     {
-        public event Action<double, double, double> OnLineRead;
-        public event Action<List<MeasureModel>, List<MeasureModel>> OnBatchCompleted; 
+        public event Action<double, double, double, double> OnLineRead;
+        public event Action<List<MeasureModel>, List<MeasureModel>, List<MeasureModel>> OnBatchCompleted;
+        public event Action<MeasureModel, MeasureModel, MeasureModel, DateTime> OnEveryLine; 
 
         private SerialPort _port;
         private DateTime _lastSend = new DateTime(1, 1, 1);
         private List<double> rs = new List<double>();
         private List<double> irs = new List<double>();
+        private List<double> gs = new List<double>(); 
         private int _batchSize;
 
         private List<MeasureModel> rBatch = new List<MeasureModel>();
-        private List<MeasureModel> irBatch = new List<MeasureModel>(); 
+        private List<MeasureModel> irBatch = new List<MeasureModel>();
+        private List<MeasureModel> gBatch = new List<MeasureModel>(); 
 
         public void Start(string comPort, int baudRate, int batchSize)
         {
@@ -35,16 +38,18 @@ namespace Reader
                     string line = _port.ReadLine().Trim();
                     if(line.StartsWith("R["))
                     {
-                        double r = 0, ir = 0; 
+                        double r = 0, ir = 0, g = 0; 
                         //R[972] IR[709] G[211]
-                        Match match = Regex.Match(line, @"^R\[([0-9]+)\] IR\[([0-9]+)\]"); 
-                        if(match.Groups.Count ==3)
+                        Match match = Regex.Match(line, @"^R\[([0-9]+)\] IR\[([0-9]+)\] G\[([0-9]+)\]"); 
+                        if(match.Groups.Count ==4)
                         {
                             r = double.Parse(match.Groups[1].Value);
                             ir = double.Parse(match.Groups[2].Value);
+                            g = double.Parse(match.Groups[3].Value); 
 
                             rs.Add(r);
-                            irs.Add(ir); 
+                            irs.Add(ir);
+                            gs.Add(g); 
 
                             DateTime now = DateTime.Now;
                             double timeStamp = (now - startTime).TotalSeconds;
@@ -53,29 +58,42 @@ namespace Reader
                             {
                                 double rAverage = rs.Average();
                                 double irAverage = irs.Average();
+                                double gAverage = gs.Average(); 
 
-                                OnLineRead(rAverage, irAverage, timeStamp);
+                                OnLineRead?.Invoke(rAverage, irAverage, gAverage, timeStamp);
                                 irs.Clear();
                                 rs.Clear();
+                                gs.Clear(); 
                             }
 
-                            rBatch.Add(new MeasureModel
+                            MeasureModel rModel=  new MeasureModel
                             {
                                 Time = timeStamp,
                                 Value = r,
-                            });
-
-                            irBatch.Add(new MeasureModel
+                            }; 
+                            MeasureModel irModel = new MeasureModel
                             {
                                 Time = timeStamp,
                                 Value = ir,
-                            });
+                            };
+                            MeasureModel gModel = new MeasureModel
+                            {
+                                Time = timeStamp,
+                                Value = g,
+                            }; 
+
+                            rBatch.Add(rModel);
+                            irBatch.Add(irModel);
+                            gBatch.Add(gModel);
+
+                            OnEveryLine?.Invoke(rModel, irModel, gModel, now); 
 
                             if (irBatch.Count >= _batchSize)
                             {
-                                OnBatchCompleted?.Invoke(rBatch, irBatch);
+                                OnBatchCompleted?.Invoke(rBatch, irBatch, gBatch);
                                 rBatch.Clear();
                                 irBatch.Clear();
+                                gBatch.Clear(); 
                             }
 
                             _lastSend = now; 
