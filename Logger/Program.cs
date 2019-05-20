@@ -8,8 +8,39 @@ using System.Threading.Tasks;
 
 namespace Logger
 {
+    class Record
+    {
+        public double SPO2 { get; set; }
+        public double BPM { get; set; }
+        public DateTime TakenAt { get; set; }
+    }
+
     class Program
     {
+        static void SaveSnippet(List<MeasureModel> gs,string outputPath)
+        {
+            using (StreamWriter sw = new StreamWriter(outputPath))
+            {
+                for (int c = 0; c < gs.Count; c++)
+                {
+                    sw.WriteLine($"{gs[c].Value}");
+                }
+                sw.Flush();
+            }
+        }
+
+        static void SaveSnippet(List<MeasureModel> irs, List<MeasureModel> rs, string outputPath)
+        {
+            using (StreamWriter sw = new StreamWriter(outputPath))
+            {
+                for(int c=0;c<irs.Count;c++)
+                {
+                    sw.WriteLine($"{irs[c].Value},{rs[c].Value}"); 
+                }
+                sw.Flush(); 
+            }
+        }
+
         static void Main(string[] args)
         {
             if(args.Length == 0)
@@ -68,6 +99,7 @@ namespace Logger
                                 if (marker == 0x69)
                                 {
                                     DateTime dt = DateTime.FromFileTime(fileTime);
+                                    //Console.WriteLine(dt); 
                                     if(start.Year == 1)
                                     {
                                         start = dt; 
@@ -92,31 +124,39 @@ namespace Logger
 
                                     if(rs.Count == 100)
                                     {
+                                        bool doIt = false;
+                                        if (dt.Hour == 4)
+                                        {
+                                            //SaveSnippet(irs, rs, "C:/users/brush/desktop/lateNight.csv");
+                                            doIt = true;
+                                        }
+
                                         //SignalProcessor.Mean(ref irs, ref rs);
                                         //SignalProcessor.LineLeveling(ref irs, ref rs);
                                         //double spo2 = SignalProcessor.ComputeSpo2(irs, rs);
                                         double spo2 = 0, bpm = 0; 
                                         if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm))
                                         {
-                                            if (spo2 > 90 && spo2 < 100)
+                                            SignalProcessor.Mean(ref gs);
+                                            SignalProcessor.LineLeveling(ref gs);
+                                            bpm = SignalProcessor.ComputeBpm(gs, doIt);
+                                            if (bpm > 200)
+                                            {
+                                                SaveSnippet(gs, "C:/users/brush/desktop/tooFast.csv");
+                                            }
+
+                                            if (spo2 > 90 && spo2 < 100 && bpm > 0)
                                             {
                                                 sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
                                                 sw.Flush();
-                                                //lastSpo2 = spo2; 
                                             }
                                         }
-
-                                        SignalProcessor.Mean(ref gs);
-                                        SignalProcessor.LineLeveling(ref gs);
-                                        bpm = SignalProcessor.ComputeBpm(gs);
 
                                         //foreach(double v in gs.Select(n=>n.Value))
                                         //{
                                         //    File.AppendAllText("C:/users/ben/desktop/turd.csv", $"{v}\n");
                                         //}
 
-                 
-       
                                         rs.Clear();
                                         irs.Clear();
                                         gs.Clear(); 
@@ -132,7 +172,8 @@ namespace Logger
                     }
                 }
 
-                return; 
+                Console.WriteLine("Done. Press ENTER to quit.");
+                Console.ReadLine(); 
             }
         }
     }

@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DeviceReader.cs" />
+    <Compile Include="JeanPaul.cs" />
     <Compile Include="MeasureModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SignalProcessor.cs" />

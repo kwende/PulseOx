@@ -164,7 +164,7 @@ namespace Visualizer
                 SignalProcessor.Mean(ref g);
                 SignalProcessor.LineLeveling(ref g);
 
-                double myBpm = SignalProcessor.ComputeBpm(g);
+                double myBpm = SignalProcessor.ComputeBpm(g, false);
 
                 ChartHeartProcessed.AddRange(g);
 

@@ -1,6 +1,7 @@
 ﻿using MathNet.Numerics.Statistics;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -56,37 +57,90 @@ namespace Reader
             }
         }
 
-        public static double ComputeBpm(List<MeasureModel> heart)
+        private static List<int> FindAllPeaks(List<MeasureModel> heart)
         {
-            int beats = 0;
-            List<double> times = new List<double>(); 
-            for(int c=1;c<heart.Count-1;c++)
+            const int Threshold = 10;
+
+            List<int> peaks = new List<int>(); 
+            for (int c = 1; c < heart.Count - 1; c++)
             {
                 double v1 = heart[c - 1].Value;
                 double v2 = heart[c].Value;
-                double v3 = heart[c +1].Value;
+                double v3 = heart[c + 1].Value;
 
-                if (v1 > 100 && v2 > 100 && v3 > 100 &&
+                if (v2 > Threshold &&
                     v1 < v2 && v2 > v3)
                 {
-                    beats++;
-                    times.Add(heart[c].Time);
+                    peaks.Add(c); 
                 }
             }
-            if(times.Count > 2)
+
+            return peaks; 
+        }
+
+        public static double ComputeBpm(List<MeasureModel> heart, bool doIt)
+        {
+            int beats = 0;
+            List<double> times = new List<double>(); 
+
+            //ZScoreOutput o = JeanPaul.StartAlgo(heart.Select(n => n.Value).ToList(), 20, 0, .5);
+
+            // find all peaks
+            List<int> allPeaks = FindAllPeaks(heart);
+
+            // find weighted average of all peaks. 
+            double average = 0;
+            for (int c = 0; c < allPeaks.Count; c++)
             {
-                double first = heart.First().Time;
-                double last = heart.Last().Time;
+                int index = allPeaks[c];
+                average += heart[index].Value;
+            }
+
+            average /= (allPeaks.Count * 1.0);
+            average *= .5; 
+
+            //File.Delete("C:/users/brush/desktop/heart.csv");
+
+            for (int c = 0; c < allPeaks.Count; c++)
+            {
+                int index = allPeaks[c]; 
+                MeasureModel m = heart[index];
+                if(m.Value >= average)
+                {
+                    beats++;
+                    times.Add(heart[index].Time);
+                }
+                //File.AppendAllText("C:/users/brush/desktop/heart.csv", $"{m.Time}, {m.Value}, {average}\n");
+            }
+
+            //int beats = 0;
+            //for(int c=1;c<heart.Count-1;c++)
+            //{
+            //    double v1 = heart[c - 1].Value;
+            //    double v2 = heart[c].Value;
+            //    double v3 = heart[c +1].Value;
+
+            //    if (v2 > Threshold && 
+            //        v1 < v2 && v2 > v3)
+            //    {
+            //        beats++;
+            //        times.Add(heart[c].Time);
+            //    }
+            //}
+            if (times.Count > 2)
+            {
+                double first = times.First();
+                double last = times.Last();
 
                 double timeSpan = last - first;
                 double multiple = 60.0 / timeSpan;
 
                 double bpm = multiple * beats;
-                return bpm; 
+                return bpm;
             }
             else
             {
-                return 0; 
+                return 0;
             }
         }
 
