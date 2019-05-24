@@ -35,23 +35,17 @@
         </lvc:CartesianChart>
         <lvc:CartesianChart DisableAnimations="true" Hoverable="False" DataTooltip="{x:Null}" Margin="0,300,912.6,10.4">
             <lvc:CartesianChart.Series>
-                <lvc:LineSeries Values="{Binding ChartValuesRedProcessed}" 
-                    PointGeometry="{x:Null}" 
-                    LineSmoothness="0"
-                    StrokeThickness="1" 
-                    Stroke="#F34336"
-                    Fill="Transparent"/>
-                <lvc:LineSeries Values="{Binding ChartValuesIRProcessed}" 
-                    PointGeometry="{x:Null}" 
-                    LineSmoothness="0"
-                    StrokeThickness="1" 
-                    Stroke="Green"
-                    Fill="Transparent"/>
-                <lvc:LineSeries Values="{Binding ChartHeartProcessed}" 
+                <lvc:LineSeries Values="{Binding Spo2}" 
                     PointGeometry="{x:Null}" 
                     LineSmoothness="0"
                     StrokeThickness="1" 
                     Stroke="Blue"
+                    Fill="Transparent"/>
+                <lvc:LineSeries Values="{Binding Bpm}" 
+                    PointGeometry="{x:Null}" 
+                    LineSmoothness="0"
+                    StrokeThickness="1" 
+                    Stroke="Red"
                     Fill="Transparent"/>
             </lvc:CartesianChart.Series>
         </lvc:CartesianChart>

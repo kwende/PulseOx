@@ -44,9 +44,8 @@ namespace Visualizer
 
         const int BatchSize = 100; 
 
-        public ChartValues<MeasureModel> ChartValuesRedProcessed { get; set; }
-        public ChartValues<MeasureModel> ChartValuesIRProcessed { get; set; }
-        public ChartValues<MeasureModel> ChartHeartProcessed { get; set; }
+        public ChartValues<MeasureModel> Spo2 { get; set; }
+        public ChartValues<MeasureModel> Bpm { get; set; }
 
         public ChartValues<MeasureModel> ChartValuesRed { get; set; }
         public ChartValues<MeasureModel> ChartValuesIR { get; set; }
@@ -93,9 +92,8 @@ namespace Visualizer
             ChartValuesIR = new ChartValues<MeasureModel>();
             ChartValuesHeart = new ChartValues<MeasureModel>();
 
-            ChartValuesRedProcessed = new ChartValues<MeasureModel>();
-            ChartValuesIRProcessed = new ChartValues<MeasureModel>();
-            ChartHeartProcessed = new ChartValues<MeasureModel>(); 
+            Bpm = new ChartValues<MeasureModel>();
+            Spo2 = new ChartValues<MeasureModel>();
 
             //lets save the mapper globally.
             Charting.For<MeasureModel>(mapper);
@@ -148,40 +146,42 @@ namespace Visualizer
                 }); 
                 SetAxisLimits(dt);
             };
+            _reader.OnEveryLine += (r, ir, g, t) =>
+            {
+
+            }; 
             _reader.OnBatchCompleted += (r, ir, g) =>
             {
-                SignalProcessor.Mean(ref r, ref ir);
-                SignalProcessor.LineLeveling(ref ir, ref r);
-
-                ChartValuesRedProcessed.Clear();
-                ChartValuesIRProcessed.Clear();
-                ChartHeartProcessed.Clear();
-
- 
-                ChartValuesRedProcessed.AddRange(r);
-                ChartValuesIRProcessed.AddRange(ir);
+                //SignalProcessor.Mean(ref r, ref ir);
+                //SignalProcessor.LineLeveling(ref ir, ref r);
 
                 SignalProcessor.Mean(ref g);
                 SignalProcessor.LineLeveling(ref g);
-
                 double myBpm = SignalProcessor.ComputeBpm(g, false);
 
-                ChartHeartProcessed.AddRange(g);
-
                 double spo2 = 0, bpm = 0;
-                if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm))
+                if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)
                 {
                     Dispatcher.Invoke(() =>
                     {
                         SpO2Label.Content = $"SPO2: {spo2}, BPM: {myBpm}"; 
                     });
-                }
-                else
-                {
-                    Dispatcher.Invoke(() =>
+                    Spo2.Add(new MeasureModel
                     {
-                        SpO2Label.Content = $"BPM: {myBpm}";
+                        Value = spo2,
+                        Time = r.Last().Time,
                     });
+                    Bpm.Add(new MeasureModel
+                    {
+                        Value = myBpm,
+                        Time = r.Last().Time,
+                    }); 
+
+                    if(Spo2.Count > 2000)
+                    {
+                        Spo2.RemoveAt(0);
+                        Bpm.RemoveAt(0); 
+                    }
                 }
 
                 return; 

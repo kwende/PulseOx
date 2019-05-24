@@ -1,4 +1,5 @@
 ﻿using Reader;
+using Robert;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -64,6 +65,17 @@ namespace Logger
                         };
                         dr.OnBatchCompleted += (r, ir, g) =>
                         {
+                            SignalProcessor.Mean(ref g);
+                            SignalProcessor.LineLeveling(ref g);
+                            double myBpm = SignalProcessor.ComputeBpm(g, false);
+
+                            double spo2 = 0, bpm = 0;
+                            if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)
+                            {
+                                Console.Clear(); 
+                                Console.WriteLine($"SPO2: {spo2}, BPM: {myBpm}");
+                            }
+
                             //Console.Write("+");
                             bw.Flush();
                         };
@@ -74,6 +86,8 @@ namespace Logger
             }
             else
             {
+                bool record = false; 
+
                 string inputFile = args[0];
                 string resultsFile = Path.Combine(Path.GetDirectoryName(inputFile), Path.GetFileNameWithoutExtension(inputFile)) + ".csv";
                 using (StreamWriter sw = new StreamWriter(resultsFile))
@@ -99,6 +113,28 @@ namespace Logger
                                 if (marker == 0x69)
                                 {
                                     DateTime dt = DateTime.FromFileTime(fileTime);
+
+
+                                    //if(dt.Hour == 23 && dt.Minute == 56)
+                                    //{
+                                    //    record = true;  
+                                    //}
+                                    //if(dt.Hour == 0 && dt.Minute == 11)
+                                    //{
+                                    //    record = false; 
+                                    //}
+
+                                    //if(record)
+                                    //{
+                                    //    sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{g}"); 
+                                    //   // File.AppendAllText("C:/users/ben/desktop/fart.csv", $"{g}\n");
+                                    //}
+                                    //if((dt.Hour == 23 && dt.Minute >= 56) && 
+                                    //    (dt.Hour==0 && dt.Minute <= 11))
+                                    //{
+                                    //    
+                                    //}
+
                                     //Console.WriteLine(dt); 
                                     if(start.Year == 1)
                                     {
@@ -140,10 +176,14 @@ namespace Logger
                                             SignalProcessor.Mean(ref gs);
                                             SignalProcessor.LineLeveling(ref gs);
                                             bpm = SignalProcessor.ComputeBpm(gs, doIt);
-                                            if (bpm > 200)
-                                            {
-                                                SaveSnippet(gs, "C:/users/brush/desktop/tooFast.csv");
-                                            }
+
+                                            //if (bpm > 94)
+                                            //{
+                                            //    foreach (MeasureModel m in gs)
+                                            //    {
+                                            //        File.AppendAllText("C:/users/ben/desktop/bpm2.csv", $"{m.Value}\n");
+                                            //    }
+                                            //}
 
                                             if (spo2 > 90 && spo2 < 100 && bpm > 0)
                                             {

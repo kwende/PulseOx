@@ -57,91 +57,126 @@ namespace Reader
             }
         }
 
-        private static List<int> FindAllPeaks(List<MeasureModel> heart)
+        private static List<int> FindAllValleys(List<MeasureModel> heart)
         {
-            const int Threshold = 10;
+            const int Threshold = -10;
+            const int Lookahead = 1; 
 
-            List<int> peaks = new List<int>(); 
-            for (int c = 1; c < heart.Count - 1; c++)
+            List<int> valley = new List<int>(); 
+            for (int c = Lookahead; c < heart.Count - Lookahead; c++)
             {
-                double v1 = heart[c - 1].Value;
+                double v1 = heart[c - Lookahead].Value;
                 double v2 = heart[c].Value;
-                double v3 = heart[c + 1].Value;
+                double v3 = heart[c + Lookahead].Value;
 
-                if (v2 > Threshold &&
-                    v1 < v2 && v2 > v3)
+                if (v2 < Threshold &&
+                    v1 > v2 && v2 < v3)
                 {
-                    peaks.Add(c); 
+                    valley.Add(c); 
                 }
             }
 
-            return peaks; 
+            return valley; 
+        }
+
+        private static List<MeasureModel> SmoothData(List<MeasureModel> m, int window)
+        {
+            List<MeasureModel> ret = new List<MeasureModel>(); 
+            for(int i=window;i<m.Count-window;i++)
+            {
+                MeasureModel average = new MeasureModel();
+                int a = 0;
+                for (int d = i - window; d <= i + window; d++)
+                {
+                    average.Value += m[d].Value;
+                    average.Time += m[d].Time;
+                    a++; 
+                }
+                average.Value /= (window * 2.0 + 1);
+                average.Time /= (window * 2.0 + 1);
+
+                ret.Add(average); 
+            }
+
+            return ret; 
         }
 
         public static double ComputeBpm(List<MeasureModel> heart, bool doIt)
         {
             int beats = 0;
-            List<double> times = new List<double>(); 
+            List<double> times = new List<double>();
+
+            //foreach (MeasureModel m in heart)
+            //{
+            //    File.AppendAllText("c:/users/ben/desktop/before.csv", $"[{m.Time},{m.Value}\n");
+            //}
+
+            heart = SmoothData(heart, 1);
+
+            //foreach (MeasureModel m in heart)
+            //{
+            //    File.AppendAllText("c:/users/ben/desktop/after.csv", $"{m.Time},{m.Value}\n");
+            //}
 
             //ZScoreOutput o = JeanPaul.StartAlgo(heart.Select(n => n.Value).ToList(), 20, 0, .5);
 
             // find all peaks
-            List<int> allPeaks = FindAllPeaks(heart);
+            List<int> allValleys = FindAllValleys(heart);
 
             // find weighted average of all peaks. 
             double average = 0;
-            for (int c = 0; c < allPeaks.Count; c++)
+            List<double> peakValues = new List<double>(); 
+            for (int c = 0; c < allValleys.Count; c++)
             {
-                int index = allPeaks[c];
-                average += heart[index].Value;
+                int index = allValleys[c];
+                double v = heart[index].Value;
+                peakValues.Add(v); 
+                average += v;
             }
 
-            average /= (allPeaks.Count * 1.0);
-            average *= .5; 
+            double std = MathNet.Numerics.Statistics.Statistics.StandardDeviation(peakValues); 
 
-            //File.Delete("C:/users/brush/desktop/heart.csv");
-
-            for (int c = 0; c < allPeaks.Count; c++)
+            if(std < 65)
             {
-                int index = allPeaks[c]; 
-                MeasureModel m = heart[index];
-                if(m.Value >= average)
+                average /= (allValleys.Count * 1.0);
+                average *= .5;
+
+                //File.Delete("C:/users/brush/desktop/heart.csv");
+
+                for (int c = 0; c < allValleys.Count; c++)
                 {
-                    beats++;
-                    times.Add(heart[index].Time);
+                    int index = allValleys[c];
+                    MeasureModel m = heart[index];
+                    if (m.Value <= average)
+                    {
+                        beats++;
+                        times.Add(heart[index].Time);
+                    }
+                    //File.AppendAllText("C:/users/brush/desktop/heart.csv", $"{m.Time}, {m.Value}, {average}\n");
                 }
-                //File.AppendAllText("C:/users/brush/desktop/heart.csv", $"{m.Time}, {m.Value}, {average}\n");
+
+                if (times.Count > 2)
+                {
+                    double timeBetweenBeats = 0.0;
+                    for (int c = 1; c < times.Count; c++)
+                    {
+                        timeBetweenBeats += times[c] - times[c - 1];
+                    }
+                    timeBetweenBeats /= (times.Count - 1 * 1.0);
+
+                    return 60.0 / timeBetweenBeats;
+
+                    //double first = times.First();
+                    //double last = times.Last();
+
+                    //double timeSpan = last - first;
+                    //double multiple = 60.0 / timeSpan;
+
+                    //double bpm = multiple * beats;
+                    //return bpm;
+                }
             }
-
-            //int beats = 0;
-            //for(int c=1;c<heart.Count-1;c++)
-            //{
-            //    double v1 = heart[c - 1].Value;
-            //    double v2 = heart[c].Value;
-            //    double v3 = heart[c +1].Value;
-
-            //    if (v2 > Threshold && 
-            //        v1 < v2 && v2 > v3)
-            //    {
-            //        beats++;
-            //        times.Add(heart[c].Time);
-            //    }
-            //}
-            if (times.Count > 2)
-            {
-                double first = times.First();
-                double last = times.Last();
-
-                double timeSpan = last - first;
-                double multiple = 60.0 / timeSpan;
-
-                double bpm = multiple * beats;
-                return bpm;
-            }
-            else
-            {
-                return 0;
-            }
+            return 0; 
         }
 
         public static double ComputeSpo2(List<MeasureModel> ir, List<MeasureModel> r)
