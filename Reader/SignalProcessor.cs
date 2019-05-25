@@ -57,26 +57,25 @@ namespace Reader
             }
         }
 
-        private static List<int> FindAllValleys(List<MeasureModel> heart)
+        private static List<int> FindExtrema(List<MeasureModel> data, bool findPeaks)
         {
-            const int Threshold = -10;
-            const int Lookahead = 1; 
+            const int Lookahead = 2;
 
-            List<int> valley = new List<int>(); 
-            for (int c = Lookahead; c < heart.Count - Lookahead; c++)
+            List<int> points = new List<int>();
+            for (int c = Lookahead; c < data.Count - Lookahead; c++)
             {
-                double v1 = heart[c - Lookahead].Value;
-                double v2 = heart[c].Value;
-                double v3 = heart[c + Lookahead].Value;
+                double v1 = data[c - 1].Value;
+                double v2 = data[c].Value;
+                double v3 = data[c + 1].Value;
 
-                if (v2 < Threshold &&
-                    v1 > v2 && v2 < v3)
+                if ((findPeaks && v1 < v2 && v2 > v3) || 
+                    (!findPeaks && v1 > v2 && v2 < v3))
                 {
-                    valley.Add(c); 
+                    points.Add(c);
                 }
             }
 
-            return valley; 
+            return points; 
         }
 
         private static List<MeasureModel> SmoothData(List<MeasureModel> m, int window)
@@ -101,81 +100,119 @@ namespace Reader
             return ret; 
         }
 
-        public static double ComputeBpm(List<MeasureModel> heart, bool doIt)
+        public static double ComputeBpm(List<MeasureModel> heart, out List<MeasureModel> smoothedHeart)
         {
-            int beats = 0;
             List<double> times = new List<double>();
 
-            //foreach (MeasureModel m in heart)
+            smoothedHeart = SmoothData(heart, 1);
+
+            //File.Delete("C:/users/ben/desktop/bpm3.csv");
+            //foreach (MeasureModel m in smoothedHeart)
             //{
-            //    File.AppendAllText("c:/users/ben/desktop/before.csv", $"[{m.Time},{m.Value}\n");
+            //    File.AppendAllText("C:/users/ben/desktop/bpm3.csv", $"{m.Value}\n");
             //}
-
-            heart = SmoothData(heart, 1);
-
-            //foreach (MeasureModel m in heart)
-            //{
-            //    File.AppendAllText("c:/users/ben/desktop/after.csv", $"{m.Time},{m.Value}\n");
-            //}
-
-            //ZScoreOutput o = JeanPaul.StartAlgo(heart.Select(n => n.Value).ToList(), 20, 0, .5);
 
             // find all peaks
-            List<int> allValleys = FindAllValleys(heart);
+            List<int> allValleys = FindExtrema(smoothedHeart, false);
+            List<int> allPeaks = FindExtrema(smoothedHeart, true);
 
-            // find weighted average of all peaks. 
-            double average = 0;
-            List<double> peakValues = new List<double>(); 
-            for (int c = 0; c < allValleys.Count; c++)
+            //double std = MathNet.Numerics.Statistics.Statistics.StandardDeviation(peakValues);
+
+                // iterate through each peak
+            for (int c = 0, d=0; c < allPeaks.Count; c++)
             {
-                int index = allValleys[c];
-                double v = heart[index].Value;
-                peakValues.Add(v); 
-                average += v;
-            }
-
-            double std = MathNet.Numerics.Statistics.Statistics.StandardDeviation(peakValues); 
-
-            if(std < 65)
-            {
-                average /= (allValleys.Count * 1.0);
-                average *= .5;
-
-                //File.Delete("C:/users/brush/desktop/heart.csv");
-
-                for (int c = 0; c < allValleys.Count; c++)
+                int peakIndex = allPeaks[c]; 
+                // find corresponding valley for disatole
+                for(;d<allValleys.Count;d++)
                 {
-                    int index = allValleys[c];
-                    MeasureModel m = heart[index];
-                    if (m.Value <= average)
+                    int valleyIndex = allValleys[d]; 
+
+                    if(valleyIndex > peakIndex)
                     {
-                        beats++;
-                        times.Add(heart[index].Time);
+                        double peakValue = smoothedHeart[peakIndex].Value;
+                        double valleyValue = smoothedHeart[valleyIndex].Value; 
+
+                        if(peakValue - valleyValue > 50)
+                        {
+                            times.Add(smoothedHeart[valleyIndex].Time);
+                        }
+                        d++;
+                        break;
                     }
-                    //File.AppendAllText("C:/users/brush/desktop/heart.csv", $"{m.Time}, {m.Value}, {average}\n");
-                }
-
-                if (times.Count > 2)
-                {
-                    double timeBetweenBeats = 0.0;
-                    for (int c = 1; c < times.Count; c++)
-                    {
-                        timeBetweenBeats += times[c] - times[c - 1];
-                    }
-                    timeBetweenBeats /= (times.Count - 1 * 1.0);
-
-                    return 60.0 / timeBetweenBeats;
-
-                    //double first = times.First();
-                    //double last = times.Last();
-
-                    //double timeSpan = last - first;
-                    //double multiple = 60.0 / timeSpan;
-
-                    //double bpm = multiple * beats;
-                    //return bpm;
                 }
             }
+
+            if (times.Count > 2)
+            {
+                double timeBetweenBeats = 0.0;
+                for (int c = 1; c < times.Count; c++)
+                {
+                    timeBetweenBeats += times[c] - times[c - 1];
+                }
+                timeBetweenBeats /= (times.Count - 1 * 1.0);
+
+                return 60.0 / timeBetweenBeats;
+
+                //double first = times.First();
+                //double last = times.Last();
+
+                //double timeSpan = last - first;
+                //double multiple = 60.0 / timeSpan;
+
+                //double bpm = multiple * beats;
+                //return bpm;
+            }
+
+            //// find weighted average of all peaks. 
+            //double average = 0;
+            //List<double> peakValues = new List<double>(); 
+            //for (int c = 0; c < allValleys.Count; c++)
+            //{
+            //    int index = allValleys[c];
+            //    double v = smoothedHeart[index].Value;
+            //    peakValues.Add(v); 
+            //    average += v;
+            //}
+
+            //double std = MathNet.Numerics.Statistics.Statistics.StandardDeviation(peakValues); 
+
+            //if(std < 65)
+            //{
+            //    average /= (allValleys.Count * 1.0);
+            //    average *= .5;
+
+            //    for (int c = 0; c < allValleys.Count; c++)
+            //    {
+            //        int index = allValleys[c];
+            //        MeasureModel m = smoothedHeart[index];
+            //        //if (m.Value <= average)
+            //        {
+            //            beats++;
+            //            times.Add(smoothedHeart[index].Time);
+            //        }
+            //    }
+
+            //    if (times.Count > 2)
+            //    {
+            //        double timeBetweenBeats = 0.0;
+            //        for (int c = 1; c < times.Count; c++)
+            //        {
+            //            timeBetweenBeats += times[c] - times[c - 1];
+            //        }
+            //        timeBetweenBeats /= (times.Count - 1 * 1.0);
+
+            //        return 60.0 / timeBetweenBeats;
+
+            //        //double first = times.First();
+            //        //double last = times.Last();
+
+            //        //double timeSpan = last - first;
+            //        //double multiple = 60.0 / timeSpan;
+
+            //        //double bpm = multiple * beats;
+            //        //return bpm;
+            //    }
+            //}
             return 0; 
         }
 

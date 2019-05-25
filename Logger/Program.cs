@@ -67,7 +67,8 @@ namespace Logger
                         {
                             SignalProcessor.Mean(ref g);
                             SignalProcessor.LineLeveling(ref g);
-                            double myBpm = SignalProcessor.ComputeBpm(g, false);
+                            List<MeasureModel> smoothed = null; 
+                            double myBpm = SignalProcessor.ComputeBpm(g, out smoothed);
 
                             double spo2 = 0, bpm = 0;
                             if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)
@@ -175,18 +176,21 @@ namespace Logger
                                         {
                                             SignalProcessor.Mean(ref gs);
                                             SignalProcessor.LineLeveling(ref gs);
-                                            bpm = SignalProcessor.ComputeBpm(gs, doIt);
+                                            List<MeasureModel> smoothed = null; 
+                                            bpm = SignalProcessor.ComputeBpm(gs, out smoothed);
 
-                                            //if (bpm > 94)
-                                            //{
-                                            //    foreach (MeasureModel m in gs)
-                                            //    {
-                                            //        File.AppendAllText("C:/users/ben/desktop/bpm2.csv", $"{m.Value}\n");
-                                            //    }
-                                            //}
-
+           
                                             if (spo2 > 90 && spo2 < 100 && bpm > 0)
                                             {
+                                                //if (bpm > 113)
+                                                //{
+                                                //    File.Delete("C:/users/ben/desktop/bpm3.csv");
+                                                //    foreach (MeasureModel m in smoothed)
+                                                //    {
+                                                //        File.AppendAllText("C:/users/ben/desktop/bpm3.csv", $"{m.Value}\n");
+                                                //    }
+                                                //}
+
                                                 sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
                                                 sw.Flush();
                                             }
