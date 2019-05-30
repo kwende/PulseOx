@@ -157,7 +157,8 @@ namespace Visualizer
 
                 SignalProcessor.Mean(ref g);
                 SignalProcessor.LineLeveling(ref g);
-                double myBpm = SignalProcessor.ComputeBpm(g, false);
+                List<MeasureModel> smoothed = null; 
+                double myBpm = SignalProcessor.ComputeBpm(g, out smoothed);
 
                 double spo2 = 0, bpm = 0;
                 if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)

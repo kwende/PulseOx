@@ -132,7 +132,7 @@ namespace Reader
                         double peakValue = smoothedHeart[peakIndex].Value;
                         double valleyValue = smoothedHeart[valleyIndex].Value; 
 
-                        if(peakValue - valleyValue > 50)
+                        if(peakValue - valleyValue > 35)
                         {
                             times.Add(smoothedHeart[valleyIndex].Time);
                         }
@@ -142,7 +142,8 @@ namespace Reader
                 }
             }
 
-            if (times.Count > 2)
+            // if too few times, or if there are a lot of peaks and valleys per time ignore (not enough data, or too noisy)
+            if (times.Count > 2 &&  (allValleys.Count + allPeaks.Count) / 2.0 < times.Count * 3)
             {
                 double timeBetweenBeats = 0.0;
                 for (int c = 1; c < times.Count; c++)
@@ -151,7 +152,23 @@ namespace Reader
                 }
                 timeBetweenBeats /= (times.Count - 1 * 1.0);
 
-                return 60.0 / timeBetweenBeats;
+                double bpm = 60.0 / timeBetweenBeats;
+
+                return bpm; 
+
+                //if (bpm < 50)
+                //{
+                //    File.Delete("C:/users/ben/desktop/bpm3.csv");
+                //    foreach (MeasureModel m in smoothedHeart)
+                //    {
+                //        File.AppendAllText("C:/users/ben/desktop/bpm3.csv", $"{m.Value}\n");
+                //    }
+                //    return bpm;
+                //}
+                //else
+                //{
+                //    return bpm;
+                //}
 
                 //double first = times.First();
                 //double last = times.Last();

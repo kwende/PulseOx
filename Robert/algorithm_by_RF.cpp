@@ -112,7 +112,8 @@ void rf_heart_rate_and_oxygen_saturation(unsigned int* pun_ir_buffer, int n_ir_b
 	xy_ratio = (f_y_ac * f_ir_mean) / (f_x_ac * f_red_mean);  //formula is (f_y_ac*f_x_dc) / (f_x_ac*f_y_dc) ;
 	if (xy_ratio > 0.02 && xy_ratio < 1.84) { // Check boundaries of applicability
 		//*pn_spo2 = (-45.060 * xy_ratio + 30.354) * xy_ratio + 94.845;
-		*pn_spo2 = (-45.060 * xy_ratio + 30.354) * xy_ratio + 93.845;
+		//*pn_spo2 = (-45.060 * xy_ratio + 30.354) * xy_ratio + 93.845;
+		*pn_spo2 = (-55.060 * xy_ratio + 30.354) * xy_ratio + 95.8;
 		*pch_spo2_valid = 1;
 	}
 	else {
