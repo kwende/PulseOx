@@ -6,7 +6,7 @@
 
 using namespace Robert; 
 
-bool Interop::Compute(array<double>^ ir, array<double>^ r, double% spo2, double% bpm)
+bool Interop::Compute(array<double>^ ir, array<double>^ r, double% spo2, double% bpm, double% xyRatio)
 {
 	unsigned int* irBuffer = new unsigned int[ir->Length]; 
 	unsigned int* rBuffer = new unsigned int[r->Length]; 
@@ -20,14 +20,15 @@ bool Interop::Compute(array<double>^ ir, array<double>^ r, double% spo2, double%
 	float tspo2; 
 	char spo2Valid = 0, heartValid = 0; 
 	int heartRate; 
-	float ratio, coeff; 
+	float ratio, coeff, txyRatio;
 	//maxim_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid); 
-	rf_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid, &ratio, &coeff); 
+	rf_heart_rate_and_oxygen_saturation(irBuffer, ir->Length, rBuffer, &tspo2, &spo2Valid, &heartRate, &heartValid, &ratio, &coeff, &txyRatio);
 
 	if (spo2Valid && heartValid)
 	{
 		spo2 = tspo2; 
 		bpm = heartRate; 
+		xyRatio = txyRatio; 
 		return true; 
 	}
 	else

@@ -10,20 +10,22 @@ namespace Reader
 {
     public class DeviceReader
     {
-        public event Action<double, double, double, double> OnLineRead;
-        public event Action<List<MeasureModel>, List<MeasureModel>, List<MeasureModel>> OnBatchCompleted;
-        public event Action<MeasureModel, MeasureModel, MeasureModel, DateTime> OnEveryLine; 
+        public event Action<double, double, double, double, double> OnLineRead;
+        public event Action<List<MeasureModel>, List<MeasureModel>, List<MeasureModel>, List<MeasureModel>> OnBatchCompleted;
+        public event Action<MeasureModel, MeasureModel, MeasureModel, MeasureModel, DateTime> OnEveryLine; 
 
         private SerialPort _port;
         private DateTime _lastSend = new DateTime(1, 1, 1);
         private List<double> rs = new List<double>();
         private List<double> irs = new List<double>();
-        private List<double> gs = new List<double>(); 
+        private List<double> gs = new List<double>();
+        private List<double> mags = new List<double>(); 
         private int _batchSize;
 
         private List<MeasureModel> rBatch = new List<MeasureModel>();
         private List<MeasureModel> irBatch = new List<MeasureModel>();
-        private List<MeasureModel> gBatch = new List<MeasureModel>(); 
+        private List<MeasureModel> gBatch = new List<MeasureModel>();
+        private List<MeasureModel> mBatch = new List<MeasureModel>(); 
 
         public void Start(string comPort, int baudRate, int batchSize)
         {
@@ -38,18 +40,26 @@ namespace Reader
                     string line = _port.ReadLine().Trim();
                     if(line.StartsWith("R["))
                     {
-                        double r = 0, ir = 0, g = 0; 
+                        double r = 0, ir = 0, g = 0, x = 0, y = 0, z = 0;
                         //R[972] IR[709] G[211]
-                        Match match = Regex.Match(line, @"^R\[([0-9]+)\] IR\[([0-9]+)\] G\[([0-9]+)\]"); 
-                        if(match.Groups.Count ==4)
+                        //-?[0-9]\d*(\.\d+)?
+                        Match match = Regex.Match(line, @"^R\[([0-9]+)\] IR\[([0-9]+)\] G\[([0-9]+)\] X\[(-?[0-9]\d*\.\d+?)\] Y\[(-?[0-9]\d*\.\d+?)\] Z\[(-?[0-9]\d*\.\d+?)\]"); 
+                        if(match.Groups.Count ==7)
                         {
                             r = double.Parse(match.Groups[1].Value);
                             ir = double.Parse(match.Groups[2].Value);
-                            g = double.Parse(match.Groups[3].Value); 
+                            g = double.Parse(match.Groups[3].Value);
+
+                            x = double.Parse(match.Groups[4].Value);
+                            y = double.Parse(match.Groups[5].Value);
+                            z = double.Parse(match.Groups[6].Value);
+
+                            double mag = Math.Sqrt(x * x + y * y + z * z) - 9.28; 
 
                             rs.Add(r);
                             irs.Add(ir);
-                            gs.Add(g); 
+                            gs.Add(g);
+                            mags.Add(mag); 
 
                             DateTime now = DateTime.Now;
                             double timeStamp = (now - startTime).TotalSeconds;
@@ -58,12 +68,14 @@ namespace Reader
                             {
                                 double rAverage = rs.Average();
                                 double irAverage = irs.Average();
-                                double gAverage = gs.Average(); 
+                                double gAverage = gs.Average();
+                                double mAverage = mags.Average(); 
 
-                                OnLineRead?.Invoke(rAverage, irAverage, gAverage, timeStamp);
+                                OnLineRead?.Invoke(rAverage, irAverage, gAverage, mAverage, timeStamp);
                                 irs.Clear();
                                 rs.Clear();
-                                gs.Clear(); 
+                                gs.Clear();
+                                mags.Clear(); 
                             }
 
                             MeasureModel rModel=  new MeasureModel
@@ -80,20 +92,29 @@ namespace Reader
                             {
                                 Time = timeStamp,
                                 Value = g,
-                            }; 
+                            };
+
+                            MeasureModel mModel = new MeasureModel
+                            {
+                                Time = timeStamp,
+                                Value = mag,
+                            };
 
                             rBatch.Add(rModel);
                             irBatch.Add(irModel);
                             gBatch.Add(gModel);
+                            mBatch.Add(mModel); 
 
-                            OnEveryLine?.Invoke(rModel, irModel, gModel, now); 
+                            OnEveryLine?.Invoke(rModel, irModel, gModel, mModel, now); 
 
                             if (irBatch.Count >= _batchSize)
                             {
-                                OnBatchCompleted?.Invoke(rBatch, irBatch, gBatch);
+                                OnBatchCompleted?.Invoke(rBatch, irBatch, gBatch, mBatch);
+
                                 rBatch.Clear();
                                 irBatch.Clear();
-                                gBatch.Clear(); 
+                                gBatch.Clear();
+                                mBatch.Clear(); 
                             }
 
                             _lastSend = now; 

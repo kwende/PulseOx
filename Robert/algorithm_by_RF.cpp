@@ -35,7 +35,7 @@
 #include <math.h>
 
 void rf_heart_rate_and_oxygen_saturation(unsigned int* pun_ir_buffer, int n_ir_buffer_length, unsigned int* pun_red_buffer, float* pn_spo2, char* pch_spo2_valid,
-	int* pn_heart_rate, char* pch_hr_valid, float* ratio, float* correl)
+	int* pn_heart_rate, char* pch_hr_valid, float* ratio, float* correl, float* xyRatio)
 	/**
 	* \brief        Calculate the heart rate and SpO2 level, Robert Fraczkiewicz version
 	* \par          Details
@@ -113,7 +113,9 @@ void rf_heart_rate_and_oxygen_saturation(unsigned int* pun_ir_buffer, int n_ir_b
 	if (xy_ratio > 0.02 && xy_ratio < 1.84) { // Check boundaries of applicability
 		//*pn_spo2 = (-45.060 * xy_ratio + 30.354) * xy_ratio + 94.845;
 		//*pn_spo2 = (-45.060 * xy_ratio + 30.354) * xy_ratio + 93.845;
-		*pn_spo2 = (-55.060 * xy_ratio + 30.354) * xy_ratio + 95.8;
+		//=(-56.82 * A1 + 30.154) * A1 + 95.8
+		*pn_spo2 = (-56.82 * xy_ratio + 30.154) * xy_ratio + 96.5;
+		*xyRatio = xy_ratio; 
 		*pch_spo2_valid = 1;
 	}
 	else {

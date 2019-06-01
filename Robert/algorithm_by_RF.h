@@ -75,7 +75,7 @@ const int INIT_INTERVAL = FS60 / TYPICAL_HR; // Seed value for heart rate determ
 const float mean_X = (float)(BUFFER_SIZE - 1) / 2.0; // Mean value of the set of integers from 0 to BUFFER_SIZE-1. For ST=4 and FS=25 it's equal to 49.5.
 
 void rf_heart_rate_and_oxygen_saturation(unsigned int * pun_ir_buffer, int n_ir_buffer_length, unsigned int * pun_red_buffer, float* pn_spo2, char * pch_spo2_valid, int * pn_heart_rate,
-	char * pch_hr_valid, float* ratio, float* correl);
+	char * pch_hr_valid, float* ratio, float* correl, float* xyRatio);
 float rf_linear_regression_beta(float* pn_x, float xmean, float sum_x2);
 float rf_autocorrelation(float* pn_x, int n_size, int n_lag);
 float rf_rms(float* pn_x, int n_size, float* sumsq);

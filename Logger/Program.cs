@@ -54,27 +54,28 @@ namespace Logger
                     {
                         Reader.DeviceReader dr = new Reader.DeviceReader();
                         dr.Start("COM3", 9600, 100);
-                        dr.OnEveryLine += (r, ir, g, time) =>
+                        dr.OnEveryLine += (r, ir, g, m, time) =>
                         {
                             //Console.Write(".");
                             bw.Write(time.ToFileTime());
                             bw.Write(r.Value);
                             bw.Write(ir.Value);
-                            bw.Write(g.Value); 
+                            bw.Write(g.Value);
+                            bw.Write(m.Value);
                             bw.Write((byte)0x69);
                         };
-                        dr.OnBatchCompleted += (r, ir, g) =>
+                        dr.OnBatchCompleted += (r, ir, g, m) =>
                         {
                             SignalProcessor.Mean(ref g);
                             SignalProcessor.LineLeveling(ref g);
                             List<MeasureModel> smoothed = null; 
                             double myBpm = SignalProcessor.ComputeBpm(g, out smoothed);
 
-                            double spo2 = 0, bpm = 0;
-                            if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)
+                            double spo2 = 0, bpm = 0, xyRatio = 0; 
+                            if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm, ref xyRatio) && myBpm > 0)
                             {
                                 Console.Clear(); 
-                                Console.WriteLine($"SPO2: {spo2}, BPM: {myBpm}");
+                                Console.WriteLine($"SPO2: {spo2}, BPM: {myBpm}, Acc: {m.Max(n=>n.Value)}");
                             }
 
                             //Console.Write("+");
@@ -115,28 +116,6 @@ namespace Logger
                                 {
                                     DateTime dt = DateTime.FromFileTime(fileTime);
 
-
-                                    //if(dt.Hour == 23 && dt.Minute == 56)
-                                    //{
-                                    //    record = true;  
-                                    //}
-                                    //if(dt.Hour == 0 && dt.Minute == 11)
-                                    //{
-                                    //    record = false; 
-                                    //}
-
-                                    //if(record)
-                                    //{
-                                    //    sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{g}"); 
-                                    //   // File.AppendAllText("C:/users/ben/desktop/fart.csv", $"{g}\n");
-                                    //}
-                                    //if((dt.Hour == 23 && dt.Minute >= 56) && 
-                                    //    (dt.Hour==0 && dt.Minute <= 11))
-                                    //{
-                                    //    
-                                    //}
-
-                                    //Console.WriteLine(dt); 
                                     if(start.Year == 1)
                                     {
                                         start = dt; 
@@ -168,11 +147,8 @@ namespace Logger
                                             doIt = true;
                                         }
 
-                                        //SignalProcessor.Mean(ref irs, ref rs);
-                                        //SignalProcessor.LineLeveling(ref irs, ref rs);
-                                        //double spo2 = SignalProcessor.ComputeSpo2(irs, rs);
-                                        double spo2 = 0, bpm = 0; 
-                                        if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm))
+                                        double spo2 = 0, bpm = 0, xyRatio = 0; 
+                                        if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm, ref xyRatio))
                                         {
                                             SignalProcessor.Mean(ref gs);
                                             SignalProcessor.LineLeveling(ref gs);
@@ -180,26 +156,12 @@ namespace Logger
                                             bpm = SignalProcessor.ComputeBpm(gs, out smoothed);
 
            
-                                            if (spo2 > 90 && spo2 < 100 && bpm > 0)
+                                            if (spo2 > 94 && spo2 < 100 && bpm > 0)
                                             {
-                                                //if (bpm > 113)
-                                                //{
-                                                //    File.Delete("C:/users/ben/desktop/bpm3.csv");
-                                                //    foreach (MeasureModel m in smoothed)
-                                                //    {
-                                                //        File.AppendAllText("C:/users/ben/desktop/bpm3.csv", $"{m.Value}\n");
-                                                //    }
-                                                //}
-
                                                 sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
                                                 sw.Flush();
                                             }
                                         }
-
-                                        //foreach(double v in gs.Select(n=>n.Value))
-                                        //{
-                                        //    File.AppendAllText("C:/users/ben/desktop/turd.csv", $"{v}\n");
-                                        //}
 
                                         rs.Clear();
                                         irs.Clear();

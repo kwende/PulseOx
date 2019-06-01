@@ -120,7 +120,7 @@ namespace Visualizer
         {
             _reader = new DeviceReader();
             _reader.Start("COM3", 9600, BatchSize);
-            _reader.OnLineRead += (r, ir, g, dt) =>
+            _reader.OnLineRead += (r, ir, g, m, dt) =>
             {
                 if(ChartValuesIR.Count > BatchSize)
                 {
@@ -143,14 +143,19 @@ namespace Visualizer
                 {
                     Time = dt,
                     Value = g,
-                }); 
+                });
+                Bpm.Add(new MeasureModel
+                {
+                    Value = m,
+                    Time = dt,
+                });
                 SetAxisLimits(dt);
             };
-            _reader.OnEveryLine += (r, ir, g, t) =>
+            _reader.OnEveryLine += (r, ir, g, m, t) =>
             {
 
             }; 
-            _reader.OnBatchCompleted += (r, ir, g) =>
+            _reader.OnBatchCompleted += (r, ir, g, m) =>
             {
                 //SignalProcessor.Mean(ref r, ref ir);
                 //SignalProcessor.LineLeveling(ref ir, ref r);
@@ -160,25 +165,26 @@ namespace Visualizer
                 List<MeasureModel> smoothed = null; 
                 double myBpm = SignalProcessor.ComputeBpm(g, out smoothed);
 
-                double spo2 = 0, bpm = 0;
-                if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm) && myBpm > 0)
+                double spo2 = 0, bpm = 0, xyRatio = 0; 
+                if (Interop.Compute(ir.Select(n => n.Value).ToArray(), r.Select(n => n.Value).ToArray(), ref spo2, ref bpm, ref xyRatio) && myBpm > 0)
                 {
                     Dispatcher.Invoke(() =>
                     {
-                        SpO2Label.Content = $"SPO2: {spo2}, BPM: {myBpm}"; 
+                        SpO2Label.Content = $"SPO2: {(int)Math.Round(spo2)}, BPM: {(int)Math.Round(myBpm)}, Ratio: {xyRatio}"; 
                     });
-                    Spo2.Add(new MeasureModel
-                    {
-                        Value = spo2,
-                        Time = r.Last().Time,
-                    });
-                    Bpm.Add(new MeasureModel
-                    {
-                        Value = myBpm,
-                        Time = r.Last().Time,
-                    }); 
 
-                    if(Spo2.Count > 2000)
+                    //Spo2.Add(new MeasureModel
+                    //{
+                    //    Value = spo2,
+                    //    Time = m.Last().Time,
+                    //});
+                    //Bpm.Add(new MeasureModel
+                    //{
+                    //    Value = myBpm,
+                    //    Time = r.Last().Time,
+                    //});
+
+                    if (Spo2.Count > 2000)
                     {
                         Spo2.RemoveAt(0);
                         Bpm.RemoveAt(0); 
