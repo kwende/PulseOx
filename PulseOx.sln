@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logger", "Logger\Logger.csp
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Robert", "Robert\Robert.vcxproj", "{70B07981-7726-45C3-858F-EB18F1B2D4E3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoggerViewer", "LoggerViewer\LoggerViewer.csproj", "{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -67,6 +69,18 @@ Global
 		{70B07981-7726-45C3-858F-EB18F1B2D4E3}.Release|x64.Build.0 = Release|x64
 		{70B07981-7726-45C3-858F-EB18F1B2D4E3}.Release|x86.ActiveCfg = Release|Win32
 		{70B07981-7726-45C3-858F-EB18F1B2D4E3}.Release|x86.Build.0 = Release|Win32
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|x64.Build.0 = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Debug|x86.Build.0 = Debug|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|x64.ActiveCfg = Release|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|x64.Build.0 = Release|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|x86.ActiveCfg = Release|Any CPU
+		{7C0BC7AE-2EE2-4F54-B427-B20E14D655B0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

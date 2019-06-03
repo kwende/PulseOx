@@ -65,6 +65,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DeviceReader.cs" />
+    <Compile Include="FileReader.cs" />
     <Compile Include="JeanPaul.cs" />
     <Compile Include="MeasureModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -72,6 +73,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Robert\Robert.vcxproj">
+      <Project>{70b07981-7726-45c3-858f-eb18f1b2d4e3}</Project>
+      <Name>Robert</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

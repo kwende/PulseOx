@@ -92,89 +92,99 @@ namespace Logger
 
                 string inputFile = args[0];
                 string resultsFile = Path.Combine(Path.GetDirectoryName(inputFile), Path.GetFileNameWithoutExtension(inputFile)) + ".csv";
+                string accelFile = Path.Combine(Path.GetDirectoryName(inputFile), Path.GetFileNameWithoutExtension(inputFile)) + "_rawaccel.csv";
                 using (StreamWriter sw = new StreamWriter(resultsFile))
                 {
-                    using (FileStream fin = File.OpenRead(inputFile))
+                    using (StreamWriter accelSw = new StreamWriter(accelFile))
                     {
-                        using (BinaryReader br = new BinaryReader(fin))
+                        using (FileStream fin = File.OpenRead(inputFile))
                         {
-                            List<MeasureModel> irs = new List<MeasureModel>();
-                            List<MeasureModel> rs = new List<MeasureModel>();
-                            List<MeasureModel> gs = new List<MeasureModel>(); 
-
-                            DateTime start = new DateTime(1, 1, 1);
-                            double lastSpo2 = -1; 
-                            while(br.BaseStream.Position < br.BaseStream.Length)
+                            using (BinaryReader br = new BinaryReader(fin))
                             {
-                                long fileTime = br.ReadInt64();
-                                double r = br.ReadDouble();
-                                double ir = br.ReadDouble();
-                                double g = br.ReadDouble(); 
-                                byte marker = br.ReadByte();
+                                List<MeasureModel> irs = new List<MeasureModel>();
+                                List<MeasureModel> rs = new List<MeasureModel>();
+                                List<MeasureModel> gs = new List<MeasureModel>();
+                                List<MeasureModel> ms = new List<MeasureModel>();
 
-                                if (marker == 0x69)
+                                DateTime start = new DateTime(1, 1, 1);
+                                double lastSpo2 = -1;
+                                while (br.BaseStream.Position < br.BaseStream.Length)
                                 {
-                                    DateTime dt = DateTime.FromFileTime(fileTime);
+                                    long fileTime = br.ReadInt64();
+                                    double r = br.ReadDouble();
+                                    double ir = br.ReadDouble();
+                                    double g = br.ReadDouble();
+                                    double m = br.ReadDouble();
+                                    byte marker = br.ReadByte();
 
-                                    if(start.Year == 1)
+                                    if (marker == 0x69)
                                     {
-                                        start = dt; 
-                                    }
+                                        DateTime dt = DateTime.FromFileTime(fileTime);
 
-                                    irs.Add(new MeasureModel
-                                    {
-                                        Time = (dt - start).TotalSeconds,
-                                        Value = ir,
-                                    });
-                                    rs.Add(new MeasureModel
-                                    {
-                                        Time = (dt - start).TotalSeconds,
-                                        Value = r,
-                                    });
-                                    gs.Add(new MeasureModel
-                                    {
-                                        Time = (dt - start).TotalSeconds,
-                                        Value = g,
-                                    });
-
-
-                                    if(rs.Count == 100)
-                                    {
-                                        bool doIt = false;
-                                        if (dt.Hour == 4)
+                                        if (start.Year == 1)
                                         {
-                                            //SaveSnippet(irs, rs, "C:/users/brush/desktop/lateNight.csv");
-                                            doIt = true;
+                                            start = dt;
                                         }
 
-                                        double spo2 = 0, bpm = 0, xyRatio = 0; 
-                                        if(Robert.Interop.Compute(irs.Select(n=>n.Value).ToArray(), rs.Select(n=>n.Value).ToArray(), ref spo2, ref bpm, ref xyRatio))
+                                        irs.Add(new MeasureModel
                                         {
-                                            SignalProcessor.Mean(ref gs);
-                                            SignalProcessor.LineLeveling(ref gs);
-                                            List<MeasureModel> smoothed = null; 
-                                            bpm = SignalProcessor.ComputeBpm(gs, out smoothed);
+                                            Time = (dt - start).TotalSeconds,
+                                            Value = ir,
+                                        });
+                                        rs.Add(new MeasureModel
+                                        {
+                                            Time = (dt - start).TotalSeconds,
+                                            Value = r,
+                                        });
+                                        gs.Add(new MeasureModel
+                                        {
+                                            Time = (dt - start).TotalSeconds,
+                                            Value = g,
+                                        });
+                                        ms.Add(new MeasureModel
+                                        {
+                                            Time = (dt - start).TotalSeconds,
+                                            Value = m,
+                                        });
 
-           
-                                            if (spo2 > 94 && spo2 < 100 && bpm > 0)
+
+                                        if (rs.Count == 100)
+                                        {
+                                            bool doIt = false;
+
+                                            double spo2 = 0, bpm = 0, xyRatio = 0;
+                                            if (Robert.Interop.Compute(irs.Select(n => n.Value).ToArray(), rs.Select(n => n.Value).ToArray(), ref spo2, ref bpm, ref xyRatio))
                                             {
-                                                sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}");
-                                                sw.Flush();
-                                            }
-                                        }
+                                                SignalProcessor.Mean(ref gs);
+                                                SignalProcessor.LineLeveling(ref gs);
+                                                List<MeasureModel> smoothed = null;
+                                                bpm = SignalProcessor.ComputeBpm(gs, out smoothed);
 
-                                        rs.Clear();
-                                        irs.Clear();
-                                        gs.Clear(); 
+
+                                                if (spo2 > 94 && spo2 < 100)// && bpm > 0)
+                                                {
+                                                    sw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")},{spo2}, {bpm}, {ms.Max(n => n.Value)}");
+                                                    sw.Flush();
+                                                }
+                                            }
+
+                                            accelSw.WriteLine($"{dt.ToString("MM/dd/yyyy hh:mm:ss.fff tt")}, {ms.Max(n => n.Value)}"); 
+
+                                            rs.Clear();
+                                            irs.Clear();
+                                            gs.Clear();
+                                            ms.Clear();
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Corrupted file! Ending");
-                                    return;
+                                    else
+                                    {
+                                        Console.WriteLine("Corrupted file! Ending");
+                                        return;
+                                    }
                                 }
                             }
                         }
+
                     }
                 }
 

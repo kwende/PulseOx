@@ -149,6 +149,11 @@ namespace Visualizer
                     Value = m,
                     Time = dt,
                 });
+
+                if(Bpm.Count > 500)
+                {
+                    Bpm.RemoveAt(0); 
+                }
                 SetAxisLimits(dt);
             };
             _reader.OnEveryLine += (r, ir, g, m, t) =>
