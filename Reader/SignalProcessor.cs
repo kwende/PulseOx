@@ -104,7 +104,7 @@ namespace Reader
         {
             List<double> times = new List<double>();
 
-            smoothedHeart = SmoothData(heart, 1);
+            smoothedHeart = SmoothData(heart, 2);
 
             //File.Delete("C:/users/ben/desktop/bpm3.csv");
             //foreach (MeasureModel m in smoothedHeart)
@@ -132,7 +132,7 @@ namespace Reader
                         double peakValue = smoothedHeart[peakIndex].Value;
                         double valleyValue = smoothedHeart[valleyIndex].Value; 
 
-                        if(peakValue - valleyValue > 35)
+                        if(peakValue - valleyValue > 40)
                         {
                             times.Add(smoothedHeart[valleyIndex].Time);
                         }

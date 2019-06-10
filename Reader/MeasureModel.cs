@@ -11,5 +11,6 @@ namespace Reader
         public double Time { get; set; }
         public double Value { get; set; }
         public DateTime DateTime {get;set;}
+        public long FilePosition { get; set; }
     }
 }
